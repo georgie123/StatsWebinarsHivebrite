@@ -22,47 +22,27 @@ today = date.today()
 
 shp_simple_countries = r'C:/Users/Georges/PycharmProjects/data/simple_countries/simple_countries'
 workDirectory = r'C:/Users/Georges/Downloads/'
-outputExcelFile = workDirectory+str(today)+' Stats AMS Users.xlsx'
 
-# For now from an Excel import, later we will use the API
-inputExcelFile = workDirectory+'User_export_'+str(today)+'.xlsx'
-df = pd.read_excel(inputExcelFile, sheet_name='Export', engine='openpyxl',
-                   usecols=['ID', 'Email', 'Not blocked', 'Created at', 'Account activation date', 'Live Location:Country',
-                            'Industries:Industries', 'Groups Member:Group Member',
-                            '_8f70fe1e_Occupation', '_ed5be3a0_How_did_you_hear_about_us_', 'Last Membership:Type name'
+WebinarFileName = '20210127_Webinar_TheArtAndScience_Karkatzoulis'
+
+outputExcelFile = workDirectory+WebinarFileName+'_Report.xlsx'
+
+
+# Excel import
+inputExcelFile = workDirectory+WebinarFileName+'.xlsx'
+df = pd.read_excel(inputExcelFile, sheet_name='export', engine='openpyxl',
+                   usecols=['ID', 'Honorary title', 'First name', 'Last name', 'Email', 'Live Location:Country',
+                            'Industries:Industries', 'Business/Professional sector', 'How did you hear about us?'
                             ])
 
-
-# COUNT ACTIVATION
-activeUsers = df[df['Not blocked'] == True].count()['Account activation date']
-nonActiveUsers = df['Account activation date'].isna().sum()
-blockedUsers = df[df['Not blocked'] == False].count()['Account activation date']
-allUsers = df['ID'].count()
-
-activationLabel = []
-myCounts = []
-activationLabel.extend(('Confirmed', 'Unconfirmed', 'Blocked', 'Total'))
-myCounts.extend((activeUsers, nonActiveUsers, blockedUsers, allUsers))
-
-ActivationDict = list(zip(activationLabel, myCounts))
-df_ActivationCount = pd.DataFrame(ActivationDict, columns =['Users', 'Total'])
-
-df_ActivationCount['%'] = (df_ActivationCount['Total'] / allUsers) * 100
-df_ActivationCount['%'] = df_ActivationCount['%'].round(decimals=2)
+participants = df.shape[0]
 
 
-# COUNT REGISTRATIONS BY DATE (FIELD Created at)
-df['Created'] = pd.to_datetime(df['Created at'])
-df['Created'] = df['Created'].dt.to_period("M")
-df_TempCreated = pd.DataFrame(df['Created'])
-
-df_Created_count = pd.DataFrame(df_TempCreated.groupby(['Created'], dropna=False).size(), columns=['Total'])\
-    .sort_values(['Created'], ascending=True).reset_index()
-
-df_Created_count['Created'] = df_Created_count['Created'].dt.strftime('%b %Y')
-
-ind_drop = df_Created_count[df_Created_count['Created'].apply(lambda x: x.startswith('Feb 2020'))].index
-df_Created_count = df_Created_count.drop(ind_drop)
+# JOO_ACYMAILING_SUBSCRIBER IMPORT
+df_subscriber = pd.read_csv(workDirectory+'joo_acymailing_subscriber.csv', sep=';', usecols=['subid', 'source', 'email'])
+# SOURCES HARMONIZATION
+df_subscriber['source'] = df_subscriber['source'].replace({'EXTERN: ': ''}, regex=True)
+df_subscriber['source'] = df_subscriber['source'].replace({'PROSPECT: ': ''}, regex=True)
 
 
 # COUNT COUNTRY
@@ -74,8 +54,8 @@ df_Country_count['Percent'] = (df_Country_count['Total'] / df_Country_count['Tot
 df_Country_count['Percent'] = df_Country_count['Percent'].round(decimals=1)
 
 
-# COUNT CATEGORIES (CUSTOM FIELD _8f70fe1e_Occupation)
-df['Categories'] = df['_8f70fe1e_Occupation'].str.split(': ').str[0]
+# COUNT CATEGORIES (CUSTOM FIELD Business/Professional sector)
+df['Categories'] = df['Business/Professional sector'].str.split(': ').str[0]
 df_Categories_count = pd.DataFrame(df.groupby(['Categories'], dropna=False).size(), columns=['Total'])\
     .sort_values(['Total'], ascending=False).reset_index()
 df_Categories_count = df_Categories_count.fillna('Unknow')
@@ -84,8 +64,8 @@ df_Categories_count['Percent'] = (df_Categories_count['Total'] / df_Categories_c
 df_Categories_count['Percent'] = df_Categories_count['Percent'].round(decimals=1)
 
 
-# COUNT SPECIALTIES (CUSTOM FIELD _8f70fe1e_Occupation)
-df['Specialties'] = df['_8f70fe1e_Occupation'].str.split(': ').str[1]
+# COUNT SPECIALTIES (CUSTOM FIELD Business/Professional sector)
+df['Specialties'] = df['Business/Professional sector'].str.split(': ').str[1]
 df_Specialties_count = pd.DataFrame(df.groupby(['Specialties'], dropna=False).size(), columns=['Total'])\
     .sort_values(['Total'], ascending=False).reset_index()
 df_Specialties_count = df_Specialties_count.fillna('Unknow')
@@ -121,43 +101,8 @@ df_Industries_count.loc[(df_Industries_count['value'] == 'AZERTY')] = [['Unknow'
 df_Industries_count = df_Industries_count.sort_values(['Total'], ascending=False)
 
 
-# COUNT GROUPS (FIELD Groups Member:Group Member)
-df_tempGroups = pd.DataFrame(pd.melt(df['Groups Member:Group Member'].str.split(',', expand=True))['value'])
-df_Groups_count = pd.DataFrame(df_tempGroups.groupby(['value'], dropna=False).size(), columns=['Total'])\
-    .reset_index()
-df_Groups_count = df_Groups_count.fillna('AZERTY')
-
-df_Groups_count['Percent'] = (df_Groups_count['Total'] / df.shape[0]) * 100
-df_Groups_count['Percent'] = df_Groups_count['Percent'].round(decimals=2)
-
-# EMPTY VALUES
-groupsEmpty = df['Groups Member:Group Member'].isna().sum()
-groupsEmptyPercent = round((groupsEmpty / df.shape[0]) * 100, 2)
-
-# REPLACE EMPTY VALUES AND SORT
-df_Groups_count.loc[(df_Groups_count['value'] == 'AZERTY')] = [['None', groupsEmpty, groupsEmptyPercent]]
-df_Groups_count = df_Groups_count.sort_values(['Total'], ascending=False)
-
-df_Groups_count['value'] = df_Groups_count['value'].replace(['17794'], 'AMS North American Chapter')
-df_Groups_count['value'] = df_Groups_count['value'].replace(['19659'], 'No name')
-df_Groups_count['value'] = df_Groups_count['value'].replace(['19858'], 'Industries')
-df_Groups_count['value'] = df_Groups_count['value'].replace(['19859'], 'Medicinae Doctor')
-df_Groups_count['value'] = df_Groups_count['value'].replace(['22580'], 'Euro Aesthetics')
-df_Groups_count['value'] = df_Groups_count['value'].replace(['23831'], 'AMS Eastern Europe')
-
-
-# COUNT EMAIL DOMAINS
-df['Domain'] = df['Email'].str.split('@').str[1]
-df_Email_DNS_count = pd.DataFrame(df.groupby(['Domain'], dropna=False).size(), columns=['Total'])\
-    .sort_values(['Total'], ascending=False).reset_index()
-df_Email_DNS_count = df_Email_DNS_count.fillna('Unknow')
-
-df_Email_DNS_count['Percent'] = (df_Email_DNS_count['Total'] / df_Email_DNS_count['Total'].sum()) * 100
-df_Email_DNS_count['Percent'] = df_Email_DNS_count['Percent'].round(decimals=1)
-
-
-# COUNT HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How_did_you_hear_about_us_)
-df_HowDidYouHearAboutUs_count = pd.DataFrame(df.groupby(['_ed5be3a0_How_did_you_hear_about_us_'], dropna=False).size(), columns=['Total'])\
+# COUNT HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How did you hear about us?)
+df_HowDidYouHearAboutUs_count = pd.DataFrame(df.groupby(['How did you hear about us?'], dropna=True).size(), columns=['Total'])\
     .sort_values(['Total'], ascending=False).reset_index()
 df_HowDidYouHearAboutUs_count = df_HowDidYouHearAboutUs_count.fillna('Unknow')
 
@@ -165,32 +110,36 @@ df_HowDidYouHearAboutUs_count['Percent'] = (df_HowDidYouHearAboutUs_count['Total
 df_HowDidYouHearAboutUs_count['Percent'] = df_HowDidYouHearAboutUs_count['Percent'].round(decimals=1)
 
 # REPLACE SOME VALUES
-# df_HowDidYouHearAboutUs_count['_ed5be3a0_How_did_you_hear_about_us_'] = df_HowDidYouHearAboutUs_count['_ed5be3a0_How_did_you_hear_about_us_'].replace(['Email from partners (AMWC, VCS, FACE etc)'],'Email from partners')
-df_HowDidYouHearAboutUs_count['_ed5be3a0_How_did_you_hear_about_us_'] = df_HowDidYouHearAboutUs_count['_ed5be3a0_How_did_you_hear_about_us_'].replace(['Other: please specify'],'Other')
+# df_HowDidYouHearAboutUs_count['How did you hear about us?'] = df_HowDidYouHearAboutUs_count['How did you hear about us?'].replace(['Email from partners (AMWC, VCS, FACE etc)'],'Email from partners')
+df_HowDidYouHearAboutUs_count['How did you hear about us?'] = df_HowDidYouHearAboutUs_count['How did you hear about us?'].replace(['Other: please specify'],'Other')
 
 
-# COUNT MEMBERSHIP (FIELD Last Membership:Type name)
-df_Membership_count = pd.DataFrame(df.groupby(['Last Membership:Type name'], dropna=False).size(), columns=['Total'])\
+# COUNT SOURCES
+# JOIN LEFT WITH SUBSCRIBERS
+df_WebinarSubscriber = pd.merge(df, df_subscriber, left_on='Email', right_on='email', how='left')\
+    [['Email', 'source']]
+
+df_Sources = pd.DataFrame(df_WebinarSubscriber.groupby(['source'], dropna=False).size(), columns=['Total'])\
     .sort_values(['Total'], ascending=False).reset_index()
-df_Membership_count = df_Membership_count.fillna('Basic Membership')
+df_Sources = df_Sources.fillna('')
 
-df_Membership_count['Percent'] = (df_Membership_count['Total'] / df_Membership_count['Total'].sum()) * 100
-df_Membership_count['Percent'] = df_Membership_count['Percent'].round(decimals=1)
+df_Sources['Percent'] = (df_Sources['Total'] / df_Sources['Total'].sum()) * 100
+df_Sources['Percent'] = df_Sources['Percent'].round(decimals=1)
 
+# NEW EMAIL SUBSCRIBERS
+df_WebinarNew = pd.DataFrame(df[~df['Email'].isin(df_subscriber ['email'])])
+newWebinar = df_WebinarNew.shape[0]
 
 # EXCEL FILE
 writer = pd.ExcelWriter(outputExcelFile, engine='xlsxwriter')
 
-df_ActivationCount.to_excel(writer, index=False, sheet_name='Registrations', header=True)
 df_Country_count.to_excel(writer, index=False, sheet_name='Countries', header=['Country', 'Total', '%'])
 df_Categories_count.to_excel(writer, index=False, sheet_name='Categories', header=['Category', 'Total', '%'])
 df_Specialties_count.to_excel(writer, index=False, sheet_name='Specialties', header=['Specialty', 'Total', '%'])
 df_SpecialtiesPerCountry_count.to_excel(writer, index=False, sheet_name='Specialties per country', header=['Country', 'Specialty', 'Total', '%'])
 df_Industries_count.to_excel(writer, index=False, sheet_name='Expertise & Interests', header=['Expertise or Interest', 'Total', '%'])
-df_Groups_count.to_excel(writer, index=False, sheet_name='Groups', header=['Group', 'Total', '%'])
-df_Email_DNS_count.to_excel(writer, index=False, sheet_name='Email domains', header=['Email domain', 'Total', '%'])
-df_HowDidYouHearAboutUs_count.to_excel(writer, index=False, sheet_name='How Did You Hear', header=['How did you hear about us', 'Total', '%'])
-df_Membership_count.to_excel(writer, index=False, sheet_name='Memberships', header=['Membership', 'Total', '%'])
+df_HowDidYouHearAboutUs_count.to_excel(writer, index=False, sheet_name='How Did You Hear', header=['How did you hear about us (known)', 'Total', '%'])
+df_Sources.to_excel(writer, index=False, sheet_name='Sources', header=['Source', 'Total', '%'])
 
 writer.save()
 
@@ -199,8 +148,6 @@ workbook = openpyxl.load_workbook(outputExcelFile)
 sheetsLits = workbook.sheetnames
 
 for sheet in sheetsLits:
-    if sheet == 'Registrations':
-        continue
     worksheet = workbook[sheet]
     FullRange = 'A1:' + get_column_letter(worksheet.max_column) + str(worksheet.max_row)
     worksheet.auto_filter.ref = FullRange
@@ -221,34 +168,6 @@ for sheet in sheetsLits:
         else:
             workbook[sheet].column_dimensions[get_column_letter(cell.column)].width = 10
         workbook.save(outputExcelFile)
-
-
-# CHART USERS STATUS
-activationLabel.pop()
-
-activationValue = []
-activationValue.extend([activeUsers, nonActiveUsers, blockedUsers])
-
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-fig1 = plt.figure()
-plt.pie(activationValue, labels=activationLabel, colors=colors, autopct='%1.2f%%', shadow=False, startangle=90)
-plt.axis('equal')
-plt.title('User status', pad=20, fontsize=15)
-
-fig1.savefig(workDirectory+'myplot1.png', dpi=70)
-plt.clf()
-
-im = Image.open(workDirectory+'myplot1.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'myplot1.png')
-
-# INSERT CHART IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'myplot1.png')
-img.anchor = 'A8'
-
-workbook['Registrations'].add_image(img)
-workbook.save(outputExcelFile)
 
 
 # CHART CATEGORIES
@@ -287,24 +206,27 @@ workbook['Categories'].add_image(img)
 workbook.save(outputExcelFile)
 
 
-# CHART HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How_did_you_hear_about_us_)
-ind_drop = df_HowDidYouHearAboutUs_count[df_HowDidYouHearAboutUs_count['_ed5be3a0_How_did_you_hear_about_us_'].apply(lambda x: x.startswith('Unknow'))].index
-df_HowDidYouHearAboutUs_count = df_HowDidYouHearAboutUs_count.drop(ind_drop)
-
-chartLabel = df_HowDidYouHearAboutUs_count['_ed5be3a0_How_did_you_hear_about_us_'].tolist()
+# CHART HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How did you hear about us?)
+chartLabel = df_HowDidYouHearAboutUs_count['How did you hear about us?'].tolist()
+chartLegendLabel = df_HowDidYouHearAboutUs_count['How did you hear about us?'].tolist()
 chartValue = df_HowDidYouHearAboutUs_count['Total'].tolist()
+chartLegendPercent = df_HowDidYouHearAboutUs_count['Percent'].tolist()
+
+legendLabels = []
+for i, j in zip(chartLegendLabel, map(str, chartLegendPercent)):
+    legendLabels.append(i + ' (' + j + ' %)')
 
 colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-fig3 = plt.figure()
-plt.pie(chartValue, labels=None, colors=colors, autopct='%1.1f%%', shadow=False, startangle=90)
+fig3 = plt.figure(figsize=(14,10))
+plt.pie(chartValue, labels=chartLabel, colors=colors, autopct='%1.1f%%', shadow=False, startangle=90)
 
 plt.axis('equal')
 plt.title('How did you hear about us (known)', pad=20, fontsize=15)
 
-plt.legend(chartLabel, loc='best', fontsize=8)
+plt.legend(legendLabels, loc='best', fontsize=8)
 
-fig3.savefig(workDirectory+'myplot3.png', dpi=100)
+fig3.savefig(workDirectory+'myplot3.png', dpi=75)
 plt.clf()
 
 im = Image.open(workDirectory+'myplot3.png')
@@ -316,117 +238,6 @@ img = openpyxl.drawing.image.Image(workDirectory+'myplot3.png')
 img.anchor = 'E4'
 
 workbook['How Did You Hear'].add_image(img)
-workbook.save(outputExcelFile)
-
-
-# CHART MEMBERSHIP (FIELD Last Membership:Type name)
-chartLabel = df_Membership_count['Last Membership:Type name'].tolist()
-chartValue = df_Membership_count['Total'].tolist()
-chartLegendPercent = df_Membership_count['Percent'].tolist()
-
-legendLabels = []
-for i, j in zip(chartLabel, map(str, chartLegendPercent)):
-    legendLabels.append(i + ' (' + j + ' %)')
-
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-fig4 = plt.figure()
-plt.pie(chartValue, labels=None, colors=colors, autopct=None, shadow=False, startangle=90)
-
-plt.axis('equal')
-plt.title('Memberships', pad=20, fontsize=15)
-
-plt.legend(legendLabels, loc='best', fontsize=8)
-
-fig4.savefig(workDirectory+'myplot4.png', dpi=100)
-plt.clf()
-
-im = Image.open(workDirectory+'myplot4.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'myplot4.png')
-
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'myplot4.png')
-img.anchor = 'E4'
-
-workbook['Memberships'].add_image(img)
-workbook.save(outputExcelFile)
-
-
-# CHART COUNT REGISTRATIONS BY DATE (FIELD Created at)
-chartLabel = df_Created_count['Created'].tolist()
-chartValue = df_Created_count['Total'].tolist()
-
-fig5 = plt.figure(figsize=(13,6))
-bar_plot = plt.bar(chartLabel, chartValue)
-
-plt.xticks(rotation=30, ha='right')
-
-# HIDE BORDERS
-plt.gca().spines['left'].set_color('none')
-plt.gca().spines['right'].set_color('none')
-plt.gca().spines['top'].set_color('none')
-
-# HIDE TICKS
-plt.tick_params(axis='y', labelsize=0, length=0)
-plt.yticks([])
-
-# ADD VALUE ON THE TOP OF VERTICAL BARS
-def autolabel(rects):
-    for idx, rect in enumerate(bar_plot):
-        height = rect.get_height()
-        plt.text(rect.get_x() + rect.get_width()/2, height,
-                chartValue[idx],
-                ha='center', va='bottom', rotation=0)
-
-autolabel(bar_plot)
-
-fig5.savefig(workDirectory+'myplot5.png', dpi=100)
-plt.clf()
-
-im = Image.open(workDirectory+'myplot5.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'myplot5.png')
-
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'myplot5.png')
-img.anchor = 'F2'
-
-workbook['Registrations'].add_image(img)
-workbook.save(outputExcelFile)
-
-
-# CHART GROUPS (FIELD Groups Member:Group Member)
-chartLabel = df_Groups_count['value'].tolist()
-chartValue = df_Groups_count['Total'].tolist()
-chartLegendPercent = df_Groups_count['Percent'].tolist()
-
-legendLabels = []
-for i, j in zip(chartLabel, map(str, chartLegendPercent)):
-    legendLabels.append(i + ' (' + j + ' %)')
-
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-fig6 = plt.figure()
-plt.pie(chartValue, labels=None, colors=colors, autopct=None, shadow=False, startangle=90)
-
-plt.axis('equal')
-plt.title('Groups', pad=20, fontsize=15)
-
-plt.legend(legendLabels, loc='best', fontsize=8)
-
-fig6.savefig(workDirectory+'myplot6.png', dpi=100)
-plt.clf()
-
-im = Image.open(workDirectory+'myplot6.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'myplot6.png')
-
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'myplot6.png')
-img.anchor = 'F2'
-
-workbook['Groups'].add_image(img)
 workbook.save(outputExcelFile)
 
 
@@ -472,9 +283,10 @@ ax_legend = map1.add_axes([0.2, 0.14, 0.6, 0.03], zorder=3)
 cmap = mpl.colors.ListedColormap(scheme)
 cb = mpl.colorbar.ColorbarBase(ax_legend, cmap=cmap, ticks=my_range, boundaries=my_range, orientation='horizontal')
 
-# cb.ax.set_xticklabels([str(round(i, 1)) for i in my_range])
-# cb.ax.tick_params(labelsize=7)
-# cb.set_label('Percentage', rotation=0)
+# Footer
+plt.figtext(0.2, 0.17, WebinarFileName.replace('_', ' '), ha="left", fontsize=13, weight='bold')
+plt.figtext(0.2, 0.14, 'Participants: '+str(participants)+' - New emails: '+str(newWebinar), ha="left", fontsize=11)
+
 cb.remove()
 
 map1.savefig(workDirectory+'mymap1.png', dpi=110, bbox_inches='tight')
@@ -493,16 +305,10 @@ workbook.save(outputExcelFile)
 
 
 # REMOVE PICTURES
-os.remove(workDirectory+'myplot1.png')
 os.remove(workDirectory+'myplot2.png')
 os.remove(workDirectory+'myplot3.png')
-os.remove(workDirectory+'myplot4.png')
-os.remove(workDirectory+'myplot5.png')
-os.remove(workDirectory+'myplot6.png')
 os.remove(workDirectory+'mymap1.png')
 
 
 # TERMINAL OUTPUTS AND TESTS
-print(tab(df_ActivationCount, headers='keys', tablefmt='psql', showindex=False))
-print(today)
 print("OK, export done!")
