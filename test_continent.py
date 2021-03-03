@@ -42,39 +42,19 @@ df = pd.read_excel(inputExcelFile, sheet_name='export', engine='openpyxl',
 
 participants = df.shape[0]
 
-
-# JOO_ACYMAILING_SUBSCRIBER IMPORT
-df_subscriber = pd.read_csv(workDirectory+'joo_acymailing_subscriber.csv', sep=',', usecols=['source', 'email'])
-# SOURCES HARMONIZATION
-df_subscriber['source'] = df_subscriber['source'].replace({'EXTERN: ': ''}, regex=True)
-df_subscriber['source'] = df_subscriber['source'].replace({'PROSPECT: ': ''}, regex=True)
-
-
-# COUNTRY CONVERSION IMPORT
-df_CountryConversion = pd.read_excel(inputCountryConversion, sheet_name='countries', engine='openpyxl',
-                   usecols=['COUNTRY_HB', 'continent_stat'])
-
-
-# NEW EMAILS
-df_WebinarNew = pd.DataFrame(df[~df['Email'].isin(df_subscriber['email'])])
-newWebinar = df_WebinarNew.shape[0]
-
-
-# COUNT NEW AREAS
-# JOIN LEFT WITH COUNTRY CONVERSION
-df_WebinarNewAreas = pd.merge(df_WebinarNew, df_CountryConversion, left_on='Live Location:Country', right_on='COUNTRY_HB', how='left')\
-    [['Email', 'continent_stat']]
-
-df_NewAreasCount = pd.DataFrame(df_WebinarNewAreas.groupby(['continent_stat'], dropna=False).size(), columns=['Total'])\
-    .sort_values(['Total'], ascending=False).reset_index()
-df_NewAreasCount = df_NewAreasCount.fillna('Unknow')
-
-df_NewAreasCount['Percent'] = (df_NewAreasCount['Total'] / df_NewAreasCount['Total'].sum()) * 100
-df_NewAreasCount['Percent'] = df_NewAreasCount['Percent'].round(decimals=1)
-
-
-
-
+# REMOVE ADMIN
+index_drop1 = df[df['Email'].apply(lambda x: x.endswith('@informa.com'))].index
+df = df.drop(index_drop1)
+index_drop2 = df[df['Email'].apply(lambda x: x.endswith('@euromedicom.com'))].index
+df = df.drop(index_drop2)
+index_drop3 = df[df['Email'].apply(lambda x: x.endswith('@eurogin.com'))].index
+df = df.drop(index_drop3)
+index_drop4 = df[df['Email'].apply(lambda x: x.endswith('@multispecialtysociety.com'))].index
+df = df.drop(index_drop4)
+index_drop5 = df[df['Email'].apply(lambda x: x.endswith('@ce.com.co'))].index
+df = df.drop(index_drop5)
+index_drop6 = df[df['Email'].apply(lambda x: x == ('max.carter11@yahoo.com'))].index
+df = df.drop(index_drop6)
 
 # TERMINAL OUTPUTS AND TESTS
-print(tab(df_NewAreasCount.head(35), headers='keys', tablefmt='psql'))
+print(df)

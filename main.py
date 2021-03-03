@@ -26,7 +26,7 @@ inputCountryConversion = r'C:/Users/Georges/PycharmProjects/data/countries_conve
 
 workDirectory = r'C:/Users/Georges/Downloads/Webinar/'
 
-WebinarFileName = '20210127_Webinar_TheArtAndScience_Karkatzoulis'
+WebinarFileName = '20210217_Webinar_Melasma_GalvanGarcia'
 
 ReportExcelFile = workDirectory + WebinarFileName + '_Report.xlsx'
 NewAddThenDeleteExcelFile = workDirectory + WebinarFileName + '_NewAddJooThenDelete.xlsx'
@@ -40,6 +40,21 @@ df = pd.read_excel(inputExcelFile, sheet_name='export', engine='openpyxl',
                             'Industries:Industries', 'Business/Professional sector', 'How did you hear about us?'
                             ])
 
+# REMOVE ADMIN
+index_drop1 = df[df['Email'].apply(lambda x: x.endswith('@informa.com'))].index
+df = df.drop(index_drop1)
+index_drop2 = df[df['Email'].apply(lambda x: x.endswith('@euromedicom.com'))].index
+df = df.drop(index_drop2)
+index_drop3 = df[df['Email'].apply(lambda x: x.endswith('@eurogin.com'))].index
+df = df.drop(index_drop3)
+index_drop4 = df[df['Email'].apply(lambda x: x.endswith('@multispecialtysociety.com'))].index
+df = df.drop(index_drop4)
+index_drop5 = df[df['Email'].apply(lambda x: x.endswith('@ce.com.co'))].index
+df = df.drop(index_drop5)
+index_drop6 = df[df['Email'].apply(lambda x: x == ('max.carter11@yahoo.com'))].index
+df = df.drop(index_drop6)
+
+# COUNT ALL PARTICIPANTS
 participants = df.shape[0]
 
 
