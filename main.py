@@ -26,7 +26,7 @@ inputCountryConversion = r'C:/Users/Georges/PycharmProjects/data/countries_conve
 
 workDirectory = r'C:/Users/Georges/Downloads/Webinar/'
 
-WebinarFileName = '20210217_Webinar_Melasma_GalvanGarcia'
+WebinarFileName = '20210323_Webinar_Russian'
 
 ReportExcelFile = workDirectory + WebinarFileName + '_Report.xlsx'
 NewAddThenDeleteExcelFile = workDirectory + WebinarFileName + '_NewAddJooThenDelete.xlsx'
@@ -37,10 +37,10 @@ NewCollectExcelFile = workDirectory + WebinarFileName + '_NewToCollect.xlsx'
 inputExcelFile = workDirectory+WebinarFileName+'.xlsx'
 df = pd.read_excel(inputExcelFile, sheet_name='export', engine='openpyxl',
                    usecols=['ID', 'Honorary title', 'First name', 'Last name', 'Email', 'Live Location:Country',
-                            'Industries:Industries', 'Business/Professional sector', 'How did you hear about us?'
+                            'Industries:Industries', 'Business/Professional sector', 'How did you hear about AMS?'
                             ])
 
-# REMOVE ADMIN
+# REMOVE ADMIN AND TEAM
 index_drop1 = df[df['Email'].apply(lambda x: x.endswith('@informa.com'))].index
 df = df.drop(index_drop1)
 index_drop2 = df[df['Email'].apply(lambda x: x.endswith('@euromedicom.com'))].index
@@ -53,6 +53,18 @@ index_drop5 = df[df['Email'].apply(lambda x: x.endswith('@ce.com.co'))].index
 df = df.drop(index_drop5)
 index_drop6 = df[df['Email'].apply(lambda x: x == ('max.carter11@yahoo.com'))].index
 df = df.drop(index_drop6)
+index_drop7 = df[df['Email'].apply(lambda x: x == ('eo-wilson@biodiv.us'))].index
+df = df.drop(index_drop7)
+index_drop8 = df[df['Email'].apply(lambda x: x == ('cartoperso@yahoo.fr'))].index
+df = df.drop(index_drop8)
+index_drop9 = df[df['Email'].apply(lambda x: x == ('georges.hinot@gmail.com'))].index
+df = df.drop(index_drop9)
+index_drop10 = df[df['Email'].apply(lambda x: x == ('hakimislim@yahoo.fr'))].index
+df = df.drop(index_drop10)
+index_drop11 = df[df['Email'].apply(lambda x: x == ('salimsanslea@ymail.com'))].index
+df = df.drop(index_drop11)
+index_drop12 = df[df['Email'].apply(lambda x: x == ('salimsanslea@hotmail.com'))].index
+df = df.drop(index_drop12)
 
 # COUNT ALL PARTICIPANTS
 participants = df.shape[0]
@@ -139,8 +151,8 @@ df_Industries_count.loc[(df_Industries_count['value'] == 'AZERTY')] = [['Unknow'
 df_Industries_count = df_Industries_count.sort_values(['Total'], ascending=False)
 
 
-# COUNT HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How did you hear about us?)
-df_HowDidYouHearAboutUs_count = pd.DataFrame(df.groupby(['How did you hear about us?'], dropna=True).size(), columns=['Total'])\
+# COUNT HOW DID YOU HEAR ABOUT AMS (CUSTOM FIELD How did you hear about AMS?)
+df_HowDidYouHearAboutUs_count = pd.DataFrame(df.groupby(['How did you hear about AMS?'], dropna=True).size(), columns=['Total'])\
     .sort_values(['Total'], ascending=False).reset_index()
 df_HowDidYouHearAboutUs_count = df_HowDidYouHearAboutUs_count.fillna('Unknow')
 
@@ -148,7 +160,7 @@ df_HowDidYouHearAboutUs_count['Percent'] = (df_HowDidYouHearAboutUs_count['Total
 df_HowDidYouHearAboutUs_count['Percent'] = df_HowDidYouHearAboutUs_count['Percent'].round(decimals=1)
 
 # REPLACE SOME VALUES
-df_HowDidYouHearAboutUs_count['How did you hear about us?'] = df_HowDidYouHearAboutUs_count['How did you hear about us?'].replace(['Other: please specify'],'Other')
+df_HowDidYouHearAboutUs_count['How did you hear about AMS?'] = df_HowDidYouHearAboutUs_count['How did you hear about AMS?'].replace(['Other: please specify'],'Other')
 
 
 # COUNT SOURCES
@@ -237,8 +249,8 @@ df_NewIndustries_count.loc[(df_NewIndustries_count['value'] == 'AZERTY')] = [['U
 df_NewIndustries_count = df_NewIndustries_count.sort_values(['Total'], ascending=False)
 
 
-# COUNT NEW HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How did you hear about us?)
-df_NewHowDidYouHearAboutUs_count = pd.DataFrame(df_WebinarNew.groupby(['How did you hear about us?'], dropna=True).size(), columns=['Total'])\
+# COUNT NEW HOW DID YOU HEAR ABOUT AMS (CUSTOM FIELD How did you hear about AMS?)
+df_NewHowDidYouHearAboutUs_count = pd.DataFrame(df_WebinarNew.groupby(['How did you hear about AMS?'], dropna=True).size(), columns=['Total'])\
     .sort_values(['Total'], ascending=False).reset_index()
 df_NewHowDidYouHearAboutUs_count = df_NewHowDidYouHearAboutUs_count.fillna('Unknow')
 
@@ -246,7 +258,7 @@ df_NewHowDidYouHearAboutUs_count['Percent'] = (df_NewHowDidYouHearAboutUs_count[
 df_NewHowDidYouHearAboutUs_count['Percent'] = df_NewHowDidYouHearAboutUs_count['Percent'].round(decimals=1)
 
 # REPLACE SOME VALUES
-df_NewHowDidYouHearAboutUs_count['How did you hear about us?'] = df_NewHowDidYouHearAboutUs_count['How did you hear about us?'].replace(['Other: please specify'],'Other')
+df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'] = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].replace(['Other: please specify'],'Other')
 
 
 # EXCEL FILE: NEW TO ADD IN JOO_ACYMAILING_SUBSCRIBER THEN DELETE
@@ -272,7 +284,7 @@ df_Categories_count.to_excel(writer, index=False, sheet_name='Categories', heade
 df_Specialties_count.to_excel(writer, index=False, sheet_name='Specialties', header=['Specialty', 'Total', '%'])
 df_SpecialtiesPerCountry_count.to_excel(writer, index=False, sheet_name='Specialties per country', header=['Country', 'Specialty', 'Total', '%'])
 df_Industries_count.to_excel(writer, index=False, sheet_name='Expertise & Interests', header=['Expertise or Interest', 'Total', '%'])
-df_HowDidYouHearAboutUs_count.to_excel(writer, index=False, sheet_name='How Did You Hear', header=['How did you hear about us (known)', 'Total', '%'])
+df_HowDidYouHearAboutUs_count.to_excel(writer, index=False, sheet_name='How Did You Hear', header=['How did you hear about AMS (known)', 'Total', '%'])
 
 df_Sources.to_excel(writer, index=False, sheet_name='Sources', header=['Source', 'Total', '%'])
 
@@ -282,7 +294,7 @@ df_NewCategories_count.to_excel(writer, index=False, sheet_name='News Categories
 df_NewSpecialties_count.to_excel(writer, index=False, sheet_name='News Specialties', header=['Specialty', 'Total', '%'])
 df_NewSpecialtiesPerCountry_count.to_excel(writer, index=False, sheet_name='News Specialties per country', header=['Country', 'Specialty', 'Total', '%'])
 df_NewIndustries_count.to_excel(writer, index=False, sheet_name='News Expertise & Interests', header=['Expertise or Interest', 'Total', '%'])
-df_NewHowDidYouHearAboutUs_count.to_excel(writer, index=False, sheet_name='News How Did You Hear', header=['How did you hear about us (known)', 'Total', '%'])
+df_NewHowDidYouHearAboutUs_count.to_excel(writer, index=False, sheet_name='News How Did You Hear', header=['How did you hear about AMS (known)', 'Total', '%'])
 
 writer.save()
 
@@ -349,9 +361,9 @@ workbook['Categories'].add_image(img)
 workbook.save(ReportExcelFile)
 
 
-# CHART HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How did you hear about us?)
-chartLabel = df_HowDidYouHearAboutUs_count['How did you hear about us?'].tolist()
-chartLegendLabel = df_HowDidYouHearAboutUs_count['How did you hear about us?'].tolist()
+# CHART HOW DID YOU HEAR ABOUT AMS (CUSTOM FIELD How did you hear about AMS?)
+chartLabel = df_HowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
+chartLegendLabel = df_HowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
 chartValue = df_HowDidYouHearAboutUs_count['Total'].tolist()
 chartLegendPercent = df_HowDidYouHearAboutUs_count['Percent'].tolist()
 
@@ -365,7 +377,7 @@ fig3 = plt.figure(figsize=(14,10))
 plt.pie(chartValue, labels=chartLabel, colors=colors, autopct='%1.1f%%', shadow=False, startangle=90)
 
 plt.axis('equal')
-plt.title('How did you hear about us (known)', pad=20, fontsize=18)
+plt.title('How did you hear about AMS (known)', pad=20, fontsize=18)
 
 plt.legend(legendLabels, loc='best', fontsize=10)
 
@@ -483,9 +495,9 @@ workbook['News Categories'].add_image(img)
 workbook.save(ReportExcelFile)
 
 
-# CHART NEW HOW DID YOU HEAR ABOUT US (CUSTOM FIELD How did you hear about us?)
-chartLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about us?'].tolist()
-chartLegendLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about us?'].tolist()
+# CHART NEW HOW DID YOU HEAR ABOUT AMS (CUSTOM FIELD How did you hear about AMS?)
+chartLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
+chartLegendLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
 chartValue = df_NewHowDidYouHearAboutUs_count['Total'].tolist()
 chartLegendPercent = df_NewHowDidYouHearAboutUs_count['Percent'].tolist()
 
@@ -499,7 +511,7 @@ fig5 = plt.figure(figsize=(14,10))
 plt.pie(chartValue, labels=chartLabel, colors=colors, autopct='%1.1f%%', shadow=False, startangle=90)
 
 plt.axis('equal')
-plt.title('How did you hear about us (known, new emails)', pad=20, fontsize=18)
+plt.title('How did you hear about AMS (known, new emails)', pad=20, fontsize=18)
 
 plt.legend(legendLabels, loc='best', fontsize=10)
 
