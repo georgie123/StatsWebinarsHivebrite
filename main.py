@@ -26,7 +26,7 @@ inputCountryConversion = r'C:/Users/Georges/PycharmProjects/data/countries_conve
 
 workDirectory = r'C:/Users/Georges/Downloads/Webinar/'
 
-WebinarFileName = '20210323_Webinar_Russian'
+WebinarFileName = '20210330_Webinar_Russian'
 
 ReportExcelFile = workDirectory + WebinarFileName + '_Report.xlsx'
 NewAddThenDeleteExcelFile = workDirectory + WebinarFileName + '_NewAddJooThenDelete.xlsx'
@@ -241,8 +241,9 @@ df_NewIndustries_count['Percent'] = (df_NewIndustries_count['Total'] / df_Webina
 df_NewIndustries_count['Percent'] = df_NewIndustries_count['Percent'].round(decimals=2)
 
 # EMPTY VALUES
-industriesEmpty = df_WebinarNew['Industries:Industries'].isna().sum()
-industriesEmptyPercent = round((industriesEmpty / df_WebinarNew.shape[0]) * 100, 2)
+if newWebinar > 0 :
+    industriesEmpty = df_WebinarNew['Industries:Industries'].isna().sum()
+    industriesEmptyPercent = round((industriesEmpty / df_WebinarNew.shape[0]) * 100, 2)
 
 # REPLACE EMPTY VALUES AND SORT
 df_NewIndustries_count.loc[(df_NewIndustries_count['value'] == 'AZERTY')] = [['Unknow', industriesEmpty, industriesEmptyPercent]]
@@ -459,139 +460,6 @@ workbook['Countries'].add_image(img)
 workbook.save(ReportExcelFile)
 
 
-# CHART NEW CATEGORIES
-chartLabel = df_NewCategories_count['Categories'].tolist()
-chartLegendLabel = df_NewCategories_count['Categories'].tolist()
-chartValue = df_NewCategories_count['Total'].tolist()
-chartLegendPercent = df_NewCategories_count['Percent'].tolist()
-
-chartLabel[-1] = ''
-
-legendLabels = []
-for i, j in zip(chartLegendLabel, map(str, chartLegendPercent)):
-    legendLabels.append(i + ' (' + j + ' %)')
-
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-fig4 = plt.figure()
-plt.pie(chartValue, labels=chartLabel, colors=colors, autopct=None, shadow=False, startangle=90)
-plt.axis('equal')
-plt.title('Categories (new emails)', pad=20, fontsize=15)
-
-plt.legend(legendLabels, loc='best', fontsize=8)
-
-fig4.savefig(workDirectory+'myplot4.png', dpi=100)
-plt.clf()
-
-im = Image.open(workDirectory+'myplot4.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'myplot4.png')
-
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'myplot4.png')
-img.anchor = 'E4'
-
-workbook['News Categories'].add_image(img)
-workbook.save(ReportExcelFile)
-
-
-# CHART NEW HOW DID YOU HEAR ABOUT AMS (CUSTOM FIELD How did you hear about AMS?)
-chartLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
-chartLegendLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
-chartValue = df_NewHowDidYouHearAboutUs_count['Total'].tolist()
-chartLegendPercent = df_NewHowDidYouHearAboutUs_count['Percent'].tolist()
-
-legendLabels = []
-for i, j in zip(chartLegendLabel, map(str, chartLegendPercent)):
-    legendLabels.append(i + ' (' + j + ' %)')
-
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
-
-fig5 = plt.figure(figsize=(14,10))
-plt.pie(chartValue, labels=chartLabel, colors=colors, autopct='%1.1f%%', shadow=False, startangle=90)
-
-plt.axis('equal')
-plt.title('How did you hear about AMS (known, new emails)', pad=20, fontsize=18)
-
-plt.legend(legendLabels, loc='best', fontsize=10)
-
-fig5.savefig(workDirectory+'myplot5.png', dpi=70)
-plt.clf()
-
-im = Image.open(workDirectory+'myplot5.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'myplot5.png')
-
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'myplot5.png')
-img.anchor = 'E2'
-
-workbook['News How Did You Hear'].add_image(img)
-workbook.save(ReportExcelFile)
-
-
-# MAP NEW COUNTRIES
-df_NewCountry_count.set_index('Live Location:Country', inplace=True)
-
-my_values = df_NewCountry_count['Percent']
-
-num_colors = 30
-cm = plt.get_cmap('Blues')
-scheme = [cm(i / num_colors) for i in range(num_colors)]
-
-my_range = np.linspace(my_values.min(), my_values.max(), num_colors)
-
-df_NewCountry_count['Percent'] = np.digitize(my_values, my_range) - 1
-
-map2 = plt.figure(figsize=(14, 8))
-
-ax = map2.add_subplot(111, frame_on=False)
-
-m = Basemap(lon_0=0, projection='robin')
-m.drawmapboundary(color='w')
-
-m.readshapefile(shp_simple_countries, 'units', color='#444444', linewidth=.2, default_encoding='iso-8859-15')
-
-for info, shape in zip(m.units_info, m.units):
-    shp_ctry = info['COUNTRY_HB']
-    if shp_ctry not in df_NewCountry_count.index:
-        color = '#dddddd'
-    else:
-        color = scheme[df_NewCountry_count.loc[shp_ctry]['Percent']]
-
-    patches = [Polygon(np.array(shape), True)]
-    pc = PatchCollection(patches)
-    pc.set_facecolor(color)
-    ax.add_collection(pc)
-
-# Cover up Antarctica
-ax.axhspan(0, 1000 * 1800, facecolor='w', edgecolor='w', zorder=2)
-
-# Draw color legend
-ax_legend = map2.add_axes([0.2, 0.14, 0.6, 0.03], zorder=3)
-cmap = mpl.colors.ListedColormap(scheme)
-cb = mpl.colorbar.ColorbarBase(ax_legend, cmap=cmap, ticks=my_range, boundaries=my_range, orientation='horizontal')
-
-# Footer
-plt.figtext(0.2, 0.17, WebinarFileName.replace('_', ' ')+' (new emails)', ha="left", fontsize=13, weight='bold')
-
-cb.remove()
-
-map2.savefig(workDirectory+'mymap2.png', dpi=110, bbox_inches='tight')
-plt.clf()
-
-im = Image.open(workDirectory+'mymap2.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'mymap2.png')
-
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'mymap2.png')
-img.anchor = 'E2'
-
-workbook['News Countries'].add_image(img)
-workbook.save(ReportExcelFile)
-
-
 # CHART AREAS
 chartLabel = df_AreasCount['continent_stat'].tolist()
 chartLegendLabel = df_AreasCount['continent_stat'].tolist()
@@ -691,115 +559,256 @@ workbook['Areas'].add_image(img)
 workbook.save(ReportExcelFile)
 
 
-# CHART NEW AREAS
-chartLabel = df_NewAreasCount['continent_stat'].tolist()
-chartLegendLabel = df_NewAreasCount['continent_stat'].tolist()
-chartValue = df_NewAreasCount['Total'].tolist()
-chartLegendPercent = df_NewAreasCount['Percent'].tolist()
+# CHART NEW
+if newWebinar > 0 :
+    # CHART NEW CATEGORIES
+    chartLabel = df_NewCategories_count['Categories'].tolist()
+    chartLegendLabel = df_NewCategories_count['Categories'].tolist()
+    chartValue = df_NewCategories_count['Total'].tolist()
+    chartLegendPercent = df_NewCategories_count['Percent'].tolist()
 
-chartLabel[-1] = ''
+    chartLabel[-1] = ''
 
-legendLabels = []
-for i, j in zip(chartLegendLabel, map(str, chartLegendPercent)):
-    legendLabels.append(i + ' (' + j + ' %)')
+    legendLabels = []
+    for i, j in zip(chartLegendLabel, map(str, chartLegendPercent)):
+        legendLabels.append(i + ' (' + j + ' %)')
 
-colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-fig7 = plt.figure()
-plt.pie(chartValue, labels=chartLabel, colors=colors, autopct=None, shadow=False, startangle=90)
-plt.axis('equal')
-plt.title('Areas', pad=20, fontsize=15)
+    fig4 = plt.figure()
+    plt.pie(chartValue, labels=chartLabel, colors=colors, autopct=None, shadow=False, startangle=90)
+    plt.axis('equal')
+    plt.title('Categories (new emails)', pad=20, fontsize=15)
 
-plt.legend(legendLabels, loc='best', fontsize=8)
+    plt.legend(legendLabels, loc='best', fontsize=8)
 
-fig7.savefig(workDirectory+'myplot7.png', dpi=80)
-plt.clf()
+    fig4.savefig(workDirectory+'myplot4.png', dpi=100)
+    plt.clf()
 
-im = Image.open(workDirectory+'myplot7.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'myplot7.png')
+    im = Image.open(workDirectory+'myplot4.png')
+    bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
+    bordered.save(workDirectory+'myplot4.png')
 
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'myplot7.png')
-img.anchor = 'A13'
+    # INSERT IN EXCEL
+    img = openpyxl.drawing.image.Image(workDirectory+'myplot4.png')
+    img.anchor = 'E4'
 
-workbook['News Areas'].add_image(img)
-workbook.save(ReportExcelFile)
+    workbook['News Categories'].add_image(img)
+    workbook.save(ReportExcelFile)
 
 
-# MAP NEW AREAS
-df_NewAreasCount.set_index('continent_stat', inplace=True)
+    # CHART NEW HOW DID YOU HEAR ABOUT AMS (CUSTOM FIELD How did you hear about AMS?)
+    chartLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
+    chartLegendLabel = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].tolist()
+    chartValue = df_NewHowDidYouHearAboutUs_count['Total'].tolist()
+    chartLegendPercent = df_NewHowDidYouHearAboutUs_count['Percent'].tolist()
 
-my_values = df_NewAreasCount['Percent']
+    legendLabels = []
+    for i, j in zip(chartLegendLabel, map(str, chartLegendPercent)):
+        legendLabels.append(i + ' (' + j + ' %)')
 
-num_colors = 30
-cm = plt.get_cmap('Blues')
-scheme = [cm(i / num_colors) for i in range(num_colors)]
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
-my_range = np.linspace(my_values.min(), my_values.max(), num_colors)
+    fig5 = plt.figure(figsize=(14,10))
+    plt.pie(chartValue, labels=chartLabel, colors=colors, autopct='%1.1f%%', shadow=False, startangle=90)
 
-df_NewAreasCount['Percent'] = np.digitize(my_values, my_range) - 1
+    plt.axis('equal')
+    plt.title('How did you hear about AMS (known, new emails)', pad=20, fontsize=18)
 
-map4 = plt.figure(figsize=(14, 8))
+    plt.legend(legendLabels, loc='best', fontsize=10)
 
-ax = map4.add_subplot(111, frame_on=False)
+    fig5.savefig(workDirectory+'myplot5.png', dpi=70)
+    plt.clf()
 
-m = Basemap(lon_0=0, projection='robin')
-m.drawmapboundary(color='w')
+    im = Image.open(workDirectory+'myplot5.png')
+    bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
+    bordered.save(workDirectory+'myplot5.png')
 
-m.readshapefile(shp_simple_areas, 'units', color='#444444', linewidth=.2, default_encoding='iso-8859-15')
+    # INSERT IN EXCEL
+    img = openpyxl.drawing.image.Image(workDirectory+'myplot5.png')
+    img.anchor = 'E2'
 
-for info, shape in zip(m.units_info, m.units):
-    shp_ctry = info['continent']
-    if shp_ctry not in df_NewAreasCount.index:
-        color = '#dddddd'
-    else:
-        color = scheme[df_NewAreasCount.loc[shp_ctry]['Percent']]
+    workbook['News How Did You Hear'].add_image(img)
+    workbook.save(ReportExcelFile)
 
-    patches = [Polygon(np.array(shape), True)]
-    pc = PatchCollection(patches)
-    pc.set_facecolor(color)
-    ax.add_collection(pc)
 
-# Cover up Antarctica
-ax.axhspan(0, 1000 * 1800, facecolor='w', edgecolor='w', zorder=2)
+    # MAP NEW COUNTRIES
+    df_NewCountry_count.set_index('Live Location:Country', inplace=True)
 
-# Draw color legend
-ax_legend = map4.add_axes([0.2, 0.14, 0.6, 0.03], zorder=3)
-cmap = mpl.colors.ListedColormap(scheme)
-cb = mpl.colorbar.ColorbarBase(ax_legend, cmap=cmap, ticks=my_range, boundaries=my_range, orientation='horizontal')
+    my_values = df_NewCountry_count['Percent']
 
-# Footer
-plt.figtext(0.2, 0.17, WebinarFileName.replace('_', ' ')+' (new emails)', ha="left", fontsize=13, weight='bold')
+    num_colors = 30
+    cm = plt.get_cmap('Blues')
+    scheme = [cm(i / num_colors) for i in range(num_colors)]
 
-cb.remove()
+    my_range = np.linspace(my_values.min(), my_values.max(), num_colors)
 
-map4.savefig(workDirectory+'mymap4.png', dpi=90, bbox_inches='tight')
-plt.clf()
+    df_NewCountry_count['Percent'] = np.digitize(my_values, my_range) - 1
 
-im = Image.open(workDirectory+'mymap4.png')
-bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
-bordered.save(workDirectory+'mymap4.png')
+    map2 = plt.figure(figsize=(14, 8))
 
-# INSERT IN EXCEL
-img = openpyxl.drawing.image.Image(workDirectory+'mymap4.png')
-img.anchor = 'G2'
+    ax = map2.add_subplot(111, frame_on=False)
 
-workbook['News Areas'].add_image(img)
-workbook.save(ReportExcelFile)
+    m = Basemap(lon_0=0, projection='robin')
+    m.drawmapboundary(color='w')
+
+    m.readshapefile(shp_simple_countries, 'units', color='#444444', linewidth=.2, default_encoding='iso-8859-15')
+
+    for info, shape in zip(m.units_info, m.units):
+        shp_ctry = info['COUNTRY_HB']
+        if shp_ctry not in df_NewCountry_count.index:
+            color = '#dddddd'
+        else:
+            color = scheme[df_NewCountry_count.loc[shp_ctry]['Percent']]
+
+        patches = [Polygon(np.array(shape), True)]
+        pc = PatchCollection(patches)
+        pc.set_facecolor(color)
+        ax.add_collection(pc)
+
+    # Cover up Antarctica
+    ax.axhspan(0, 1000 * 1800, facecolor='w', edgecolor='w', zorder=2)
+
+    # Draw color legend
+    ax_legend = map2.add_axes([0.2, 0.14, 0.6, 0.03], zorder=3)
+    cmap = mpl.colors.ListedColormap(scheme)
+    cb = mpl.colorbar.ColorbarBase(ax_legend, cmap=cmap, ticks=my_range, boundaries=my_range, orientation='horizontal')
+
+    # Footer
+    plt.figtext(0.2, 0.17, WebinarFileName.replace('_', ' ')+' (new emails)', ha="left", fontsize=13, weight='bold')
+
+    cb.remove()
+
+    map2.savefig(workDirectory+'mymap2.png', dpi=110, bbox_inches='tight')
+    plt.clf()
+
+    im = Image.open(workDirectory+'mymap2.png')
+    bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
+    bordered.save(workDirectory+'mymap2.png')
+
+    # INSERT IN EXCEL
+    img = openpyxl.drawing.image.Image(workDirectory+'mymap2.png')
+    img.anchor = 'E2'
+
+    workbook['News Countries'].add_image(img)
+    workbook.save(ReportExcelFile)
+
+
+    # CHART NEW AREAS
+    chartLabel = df_NewAreasCount['continent_stat'].tolist()
+    chartLegendLabel = df_NewAreasCount['continent_stat'].tolist()
+    chartValue = df_NewAreasCount['Total'].tolist()
+    chartLegendPercent = df_NewAreasCount['Percent'].tolist()
+
+    chartLabel[-1] = ''
+
+    legendLabels = []
+    for i, j in zip(chartLegendLabel, map(str, chartLegendPercent)):
+        legendLabels.append(i + ' (' + j + ' %)')
+
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+
+    fig7 = plt.figure()
+    plt.pie(chartValue, labels=chartLabel, colors=colors, autopct=None, shadow=False, startangle=90)
+    plt.axis('equal')
+    plt.title('Areas', pad=20, fontsize=15)
+
+    plt.legend(legendLabels, loc='best', fontsize=8)
+
+    fig7.savefig(workDirectory+'myplot7.png', dpi=80)
+    plt.clf()
+
+    im = Image.open(workDirectory+'myplot7.png')
+    bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
+    bordered.save(workDirectory+'myplot7.png')
+
+    # INSERT IN EXCEL
+    img = openpyxl.drawing.image.Image(workDirectory+'myplot7.png')
+    img.anchor = 'A13'
+
+    workbook['News Areas'].add_image(img)
+    workbook.save(ReportExcelFile)
+
+
+    # MAP NEW AREAS
+    df_NewAreasCount.set_index('continent_stat', inplace=True)
+
+    my_values = df_NewAreasCount['Percent']
+
+    num_colors = 30
+    cm = plt.get_cmap('Blues')
+    scheme = [cm(i / num_colors) for i in range(num_colors)]
+
+    my_range = np.linspace(my_values.min(), my_values.max(), num_colors)
+
+    df_NewAreasCount['Percent'] = np.digitize(my_values, my_range) - 1
+
+    map4 = plt.figure(figsize=(14, 8))
+
+    ax = map4.add_subplot(111, frame_on=False)
+
+    m = Basemap(lon_0=0, projection='robin')
+    m.drawmapboundary(color='w')
+
+    m.readshapefile(shp_simple_areas, 'units', color='#444444', linewidth=.2, default_encoding='iso-8859-15')
+
+    for info, shape in zip(m.units_info, m.units):
+        shp_ctry = info['continent']
+        if shp_ctry not in df_NewAreasCount.index:
+            color = '#dddddd'
+        else:
+            color = scheme[df_NewAreasCount.loc[shp_ctry]['Percent']]
+
+        patches = [Polygon(np.array(shape), True)]
+        pc = PatchCollection(patches)
+        pc.set_facecolor(color)
+        ax.add_collection(pc)
+
+    # Cover up Antarctica
+    ax.axhspan(0, 1000 * 1800, facecolor='w', edgecolor='w', zorder=2)
+
+    # Draw color legend
+    ax_legend = map4.add_axes([0.2, 0.14, 0.6, 0.03], zorder=3)
+    cmap = mpl.colors.ListedColormap(scheme)
+    cb = mpl.colorbar.ColorbarBase(ax_legend, cmap=cmap, ticks=my_range, boundaries=my_range, orientation='horizontal')
+
+    # Footer
+    plt.figtext(0.2, 0.17, WebinarFileName.replace('_', ' ')+' (new emails)', ha="left", fontsize=13, weight='bold')
+
+    cb.remove()
+
+    map4.savefig(workDirectory+'mymap4.png', dpi=90, bbox_inches='tight')
+    plt.clf()
+
+    im = Image.open(workDirectory+'mymap4.png')
+    bordered = ImageOps.expand(im, border=1, fill=(0, 0, 0))
+    bordered.save(workDirectory+'mymap4.png')
+
+    # INSERT IN EXCEL
+    img = openpyxl.drawing.image.Image(workDirectory+'mymap4.png')
+    img.anchor = 'G2'
+
+    workbook['News Areas'].add_image(img)
+    workbook.save(ReportExcelFile)
+
 
 
 # REMOVE PICTURES
 os.remove(workDirectory+'myplot2.png')
 os.remove(workDirectory+'myplot3.png')
-os.remove(workDirectory+'mymap1.png')
-os.remove(workDirectory+'myplot4.png')
-os.remove(workDirectory+'myplot5.png')
-os.remove(workDirectory+'mymap2.png')
-os.remove(workDirectory+'mymap3.png')
 os.remove(workDirectory+'myplot6.png')
-os.remove(workDirectory+'mymap4.png')
-os.remove(workDirectory+'myplot7.png')
+
+os.remove(workDirectory+'mymap1.png')
+os.remove(workDirectory+'mymap3.png')
+
+
+if newWebinar > 0 :
+    os.remove(workDirectory+'myplot4.png')
+    os.remove(workDirectory+'myplot5.png')
+    os.remove(workDirectory+'myplot7.png')
+
+    os.remove(workDirectory+'mymap2.png')
+    os.remove(workDirectory+'mymap4.png')
 
 
 # TERMINAL OUTPUTS AND TESTS
