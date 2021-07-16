@@ -26,7 +26,7 @@ inputCountryConversion = r'C:/Users/Georges/PycharmProjects/data/countries_conve
 
 workDirectory = r'C:/Users/Georges/Downloads/Webinar/'
 
-WebinarFileName = '20210617_SensitiveSkin_OrasmaeMeder'
+WebinarFileName = '20210427_Webinar_Russian'
 
 ReportExcelFile = workDirectory + WebinarFileName + '_Report.xlsx'
 NewAddThenDeleteExcelFile = workDirectory + WebinarFileName + '_NewAddJooThenDelete.xlsx'
@@ -65,6 +65,8 @@ index_drop11 = df[df['Email'].apply(lambda x: x == ('salimsanslea@ymail.com'))].
 df = df.drop(index_drop11)
 index_drop12 = df[df['Email'].apply(lambda x: x == ('salimsanslea@hotmail.com'))].index
 df = df.drop(index_drop12)
+index_drop13 = df[df['Email'].apply(lambda x: x == ('katya.emailbox@gmail.com'))].index
+df = df.drop(index_drop13)
 
 # COUNT ALL PARTICIPANTS
 participants = df.shape[0]
