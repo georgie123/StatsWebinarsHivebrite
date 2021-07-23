@@ -26,7 +26,7 @@ inputCountryConversion = r'C:/Users/Georges/PycharmProjects/data/countries_conve
 
 workDirectory = r'C:/Users/Georges/Downloads/Webinar/'
 
-WebinarFileName = '20210720_Webinar_Combination_Bedin'
+WebinarFileName = '20210722_Webinar_QandA_JaruAmpornan'
 
 ReportExcelFile = workDirectory + WebinarFileName + '_Report.xlsx'
 NewAddThenDeleteExcelFile = workDirectory + WebinarFileName + '_NewAddJooThenDelete.xlsx'
