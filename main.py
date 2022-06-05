@@ -19,9 +19,7 @@ from openpyxl.styles import PatternFill
 from openpyxl.utils import get_column_letter
 
 import warnings
-from pandas.core.common import SettingWithCopyWarning
-
-warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
+warnings.simplefilter(action='ignore', category=UserWarning)
 
 today = date.today()
 
