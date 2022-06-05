@@ -18,18 +18,22 @@ import openpyxl
 from openpyxl.styles import PatternFill
 from openpyxl.utils import get_column_letter
 
+import warnings
+from pandas.core.common import SettingWithCopyWarning
+
+warnings.simplefilter(action='ignore', category=SettingWithCopyWarning)
+
 today = date.today()
 
 shp_simple_countries = r'C:/Users/Georges/PycharmProjects/data/simple_countries/simple_countries'
 shp_simple_areas = r'C:/Users/Georges/PycharmProjects/data/simple_areas/simple_areas'
 inputCountryConversion = r'C:/Users/Georges/PycharmProjects/data/countries_conversion.xlsx'
 
-workDirectory = r'C:/Users/Georges/Downloads/Webinar/'
+workDirectory = r'C:/Users/Georges/Downloads/temp_Webinar/'
 
-WebinarFileName = '20210825_Webinar_HowTo_Celik'
+WebinarFileName = '20210923_Webinar_Industry_Jasmin'
 
 ReportExcelFile = workDirectory + WebinarFileName + '_Report.xlsx'
-NewAddThenDeleteExcelFile = workDirectory + WebinarFileName + '_NewAddJooThenDelete.xlsx'
 NewCollectExcelFile = workDirectory + WebinarFileName + '_NewToCollect.xlsx'
 
 
@@ -72,11 +76,25 @@ df = df.drop(index_drop13)
 participants = df.shape[0]
 
 
-# JOO_ACYMAILING_SUBSCRIBER IMPORT
-df_subscriber = pd.read_csv(workDirectory+'joo_acymailing_subscriber.csv', sep=',', usecols=['source', 'email'])
-# SOURCES HARMONIZATION
-df_subscriber['source'] = df_subscriber['source'].replace({'EXTERN: ': ''}, regex=True)
-df_subscriber['source'] = df_subscriber['source'].replace({'PROSPECT: ': ''}, regex=True)
+# SOURCES ORIGIN
+df_SourcesOrigin = pd.read_csv(workDirectory+'sources_origin.csv', sep=';', usecols=['source', 'email'])
+
+# SOURCES SIMPLIFIED
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source']
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^EMC SOFT.*$)', 'EMC SOFT', regex=True)
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^AMS .*$)', 'AMS', regex=True)
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^PRIME .*$)', 'PRIME', regex=True)
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^PUBMED .*$)', 'PUBMED', regex=True)
+df_SourcesOrigin.loc[((df_SourcesOrigin['source simplified'].str.contains('WEBINAR')) & (~df_SourcesOrigin['source simplified'].str.contains('AMS'))), 'source simplified'] = 'WEBINAR'
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^AEM .*$)', 'AEM FORMS', regex=True)
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^AEMFORM .*$)', 'AEM FORMS', regex=True)
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^TAS-TAA .*$)', 'TAS DB', regex=True)
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^TAS .*$)', 'TAS DB', regex=True)
+df_SourcesOrigin.loc[df_SourcesOrigin['source simplified'] == 'MAILCHIMP JAN 2021 TAG DIGITAL', 'source simplified'] = 'TAS DB'
+df_SourcesOrigin.loc[df_SourcesOrigin['source simplified'] == 'MAILCHIMP JAN 2021 TAS - TAG DIGITAL', 'source simplified'] = 'TAS DB'
+df_SourcesOrigin['source simplified'] = df_SourcesOrigin['source simplified'].str.replace(r'(^ITEC .*$)', 'ITEC DB', regex=True)
+df_SourcesOrigin.loc[df_SourcesOrigin['source simplified'].str.contains(' ITEC '), 'source simplified'] = 'ITEC DB'
+df_SourcesOrigin.loc[df_SourcesOrigin['source simplified'].str.contains('LAKE B2B'), 'source simplified'] = 'LAKE B2B'
 
 
 # COUNTRY CONVERSION IMPORT
@@ -166,11 +184,11 @@ df_HowDidYouHearAboutUs_count['How did you hear about AMS?'] = df_HowDidYouHearA
 
 
 # COUNT SOURCES
-# JOIN LEFT WITH SUBSCRIBERS
-df_WebinarSubscriber = pd.merge(df, df_subscriber, left_on='Email', right_on='email', how='left')\
+# JOIN LEFT WITH SourcesOrigin
+df_WebinarSourcesOrigin = pd.merge(df, df_SourcesOrigin, left_on='Email', right_on='email', how='left')\
     [['Email', 'source']]
 
-df_Sources = pd.DataFrame(df_WebinarSubscriber.groupby(['source'], dropna=False).size(), columns=['Total'])\
+df_Sources = pd.DataFrame(df_WebinarSourcesOrigin.groupby(['source'], dropna=False).size(), columns=['Total'])\
     .sort_values(['Total'], ascending=False).reset_index()
 df_Sources = df_Sources.fillna('')
 
@@ -178,7 +196,7 @@ df_Sources['Percent'] = (df_Sources['Total'] / df_Sources['Total'].sum()) * 100
 df_Sources['Percent'] = df_Sources['Percent'].round(decimals=1)
 
 # NEW EMAILS
-df_WebinarNew = pd.DataFrame(df[~df['Email'].isin(df_subscriber['email'])])
+df_WebinarNew = pd.DataFrame(df[~df['Email'].isin(df_SourcesOrigin['email'])])
 newWebinar = df_WebinarNew.shape[0]
 
 
@@ -264,15 +282,8 @@ df_NewHowDidYouHearAboutUs_count['Percent'] = df_NewHowDidYouHearAboutUs_count['
 df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'] = df_NewHowDidYouHearAboutUs_count['How did you hear about AMS?'].replace(['Other: please specify'],'Other')
 
 
-# EXCEL FILE: NEW TO ADD IN JOO_ACYMAILING_SUBSCRIBER THEN DELETE
-df_WebinarNew['source'] = 'AMS '+str(today.strftime('%b %Y')).upper()
-writer = pd.ExcelWriter(NewAddThenDeleteExcelFile, engine='xlsxwriter')
-df_WebinarNew[['Email', 'source']].to_excel(writer, index=False, sheet_name='New Add Then Delete')
-writer.save()
-
-
 # EXCEL FILE: NEW TO COLLECT
-df_WebinarNew = df_WebinarNew.drop(columns=['ID', 'source', 'Categories', 'Specialties'])
+df_WebinarNew = df_WebinarNew.drop(columns=['ID', 'Categories', 'Specialties'])
 writer = pd.ExcelWriter(NewCollectExcelFile, engine='xlsxwriter')
 df_WebinarNew.to_excel(writer, index=False, sheet_name='New Collect')
 writer.save()
